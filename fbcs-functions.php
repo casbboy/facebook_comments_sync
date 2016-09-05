@@ -9,8 +9,8 @@ function fbcsf_syncCommentCounts($post_ID)
     $postCommentCount = @number_format($postCommentCount);
     $url = get_permalink($post_ID);
     $filecontent = file_get_contents('https://graph.facebook.com/?ids=' . $url);
-    $json = json_decode($filecontent);
-    $fbcsf_count = $json->$url->{'comments'};
+    $json = json_decode($filecontent,true);
+    $fbcsf_count = $json[$url]['share']['comment_count'];
     if ($fbcsf_count == 0 || !isset($fbcsf_count)) {
         $fbcsf_count = 0;
     }
@@ -31,8 +31,12 @@ function fbcsf_impComments($post_ID)
 {
     global $wpdb;
     $url = get_permalink($post_ID);
-    $filecontent = file_get_contents('https://graph.facebook.com/comments?id=' . $url);
+    $getpageid = file_get_contents('https://graph.facebook.com/?ids=' . $url);
+    $jsonpageid = json_decode($getpageid, TRUE);
+    $fbobjectid = $jsonpageid[$url]['og_object']['id'];
+    $filecontent = file_get_contents('https://graph.facebook.com/'. $fbobjectid .'/comments/?access_token={apikey}|{apisecret}');
     $json = json_decode($filecontent);
+    
     $fbcsf_commentArray = $json->{'data'};
     $arrayCount = count($fbcsf_commentArray);
     for ($a = 0; $a < $arrayCount; $a++) {
@@ -102,7 +106,11 @@ function fbcsf_runfbcs()
 
 
 function fbcsf_ajaxAComments($url, $postID) {
-    $filecontent = file_get_contents('https://graph.facebook.com/comments?id=' . $url);
+    //$filecontent = file_get_contents('https://graph.facebook.com/comments?id=' . $url);
+    $getpageid = file_get_contents('https://graph.facebook.com/?ids=' . $url);
+    $jsonpageid = json_decode($getpageid, TRUE);
+    $fbobjectid = $jsonpageid[$url]['og_object']['id'];
+    $filecontent = file_get_contents('https://graph.facebook.com/'. $fbobjectid .'/comments/?access_token={apikey}|{apisecret}');
     $json = json_decode($filecontent);
     $fbcsf_commentArray = $json->{'data'};
     $arrayCount = count($fbcsf_commentArray);
@@ -151,11 +159,10 @@ function fbcsf_ajaxRComments($fbcsf_commentID)
 function fbcsf_ajaxsyncCommentCounts($url, $postID)
 {
     global $wpdb;
+
     $filecontent = file_get_contents('https://graph.facebook.com/?ids=' . $url);
-    $json = json_decode($filecontent);
-
-
-    $fbcsf_count = $json->$url->{'comments'};
+    $json = json_decode($filecontent,true);
+    $fbcsf_count = $json[$url]['share']['comment_count'];
     $table = $wpdb->prefix . 'posts';
     $data = array('comment_count' => $fbcsf_count);
     $where = array('ID' => $postID);
